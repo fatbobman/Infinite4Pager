@@ -11,12 +11,13 @@ Infinite4Pager is a flexible and powerful SwiftUI component that provides infini
 - Smooth animations and gesture handling
 - Adaptive to different screen sizes
 - Background state handling
+- 100% SwiftUI
 
 ## Requirements
 
-- iOS 14.0+
-- Xcode 13.0+
-- Swift 5.5+
+- iOS 17.0+
+- Xcode 14.0+
+- Swift 5.10+
 
 ## Installation
 
