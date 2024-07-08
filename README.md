@@ -48,6 +48,7 @@ struct ContentView: View {
                     .background(Color.blue.opacity(0.3))
             }
         )
+        .ignoresSafeArea()
     }
 }
 ```
