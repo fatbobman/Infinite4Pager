@@ -7,10 +7,8 @@ Infinite4Pager is a flexible and powerful SwiftUI component that provides infini
 - Infinite scrolling in four directions
 - Support for both finite and infinite page counts
 - Customizable threshold ratios for page switching
-- Bouncing effect at edges (optional)
 - Smooth animations and gesture handling
 - Adaptive to different screen sizes
-- Background state handling
 - 100% SwiftUI
 
 ## Requirements
