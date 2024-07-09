@@ -60,9 +60,22 @@ Infinite4Pager offers several customization options:
 - `initialHorizontalPage` and `initialVerticalPage`: Set the starting page
 - `totalHorizontalPage` and `totalVerticalPage`: Set the total number of pages (or `nil` for infinite scrolling)
 - `horizontalThresholdRatio` and `verticalThresholdRatio`: Adjust the sensitivity of page switching
-- `bounce`: Enable or disable additional placeholder views to prevent blank spaces during bounce animations
+- `enableClipped` : enable clipped
+- `animation` : page scroll animation
+- `enablePageVisibility` : Whether to enable view visibility awareness. If false, onPageVisible will not respond.
 
-The `bounce` parameter, when set to `true`, creates extra placeholder views beyond the immediate adjacent pages. This prevents blank or empty spaces from appearing during bouncing animations, especially when users scroll quickly or overshoot the page boundaries. It ensures a seamless visual experience even during rapid or exaggerated scrolling motions.
+## onPageVisible
+
+A view modifier similar to `onScrollVisibilityChange` that provides the view with the current proportion of the visible area.
+
+```swift
+  PageView()
+   .onPageVisible { percent in
+    if percent > 0.1 {
+      // play video
+    }
+  }
+```
 
 ## Contributing
 
