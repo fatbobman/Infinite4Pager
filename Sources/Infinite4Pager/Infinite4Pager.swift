@@ -14,6 +14,7 @@ public struct Infinite4Pager<Content: View>: View {
   @State private var dragDirection: PageViewDirection = .none
   @State private var size: CGSize = .zero
   @Environment(\.scenePhase) var scenePhase
+  @State private var cancelByDrag = false
 
   /// 横向总视图数量，nil 为无限
   let totalHorizontalPage: Int?
@@ -68,7 +69,17 @@ public struct Infinite4Pager<Content: View>: View {
       getPage: getPage
     )
     .offset(x: offset.width, y: offset.height)
-    .gesture(
+    .onDragEnd { _ in
+      // 如果因为系统手势对 drag 手势进行了打断（ 没有调用 onEeded 闭包 ），在此进行复位
+      if !cancelByDrag {
+        withAnimation(.bouncy) {
+          offset = .zero
+        }
+      } else {
+        cancelByDrag = false
+      }
+    }
+    .simultaneousGesture(
       DragGesture()
         .onChanged { value in
           if dragDirection == .none {
@@ -152,6 +163,7 @@ public struct Infinite4Pager<Content: View>: View {
               dragDirection = .none
             }
           }
+          cancelByDrag = true
         }
     )
     .onChange(of: currentHorizontalPage) {
@@ -162,8 +174,11 @@ public struct Infinite4Pager<Content: View>: View {
     }
     // 退到后台时，调整位置。避免出现滚动到一半的场景
     .onChange(of: scenePhase) {
-      if scenePhase == .background {
+      switch scenePhase {
+      case .active, .background:
         offset = .zero
+      default:
+        break
       }
     }
     .transformEnvironment(\.mainPageOffsetInfo) { value in

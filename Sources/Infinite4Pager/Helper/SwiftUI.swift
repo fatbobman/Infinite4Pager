@@ -93,3 +93,66 @@ extension View {
     modifier(OnPageVisibleModifier(perform: perform))
   }
 }
+
+#if os(iOS)
+  struct DragGestureModifier: ViewModifier {
+    var onEnded: (CGPoint) -> Void
+
+    func body(content: Content) -> some View {
+      content
+        .overlay(DragGestureView(onEnded: onEnded))
+    }
+  }
+
+  extension View {
+    func onDragEnd(perform: @escaping @MainActor (CGPoint) -> Void) -> some View {
+      modifier(DragGestureModifier(onEnded: perform))
+    }
+  }
+
+  struct DragGestureView: UIViewRepresentable {
+    var onEnded: (CGPoint) -> Void
+
+    func makeCoordinator() -> Coordinator {
+      return Coordinator(onEnded: onEnded)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+      let view = UIView()
+      let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handlePanGesture(_:)))
+      panGesture.delegate = context.coordinator
+      view.addGestureRecognizer(panGesture)
+      return view
+    }
+
+    func updateUIView(_: UIView, context _: Context) {}
+
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+      var onEnded: (CGPoint) -> Void
+
+      init(onEnded: @escaping (CGPoint) -> Void) {
+        self.onEnded = onEnded
+      }
+
+      @objc func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+        switch gesture.state {
+        case .ended, .cancelled:
+          onEnded(gesture.translation(in: gesture.view))
+        default:
+          break
+        }
+      }
+
+      // 允许其他手势同时进行
+      func gestureRecognizer(_: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer) -> Bool {
+        return true
+      }
+    }
+  }
+#else
+  extension View {
+    func onDragEnd(perform _: @escaping @MainActor (CGPoint) -> Void) -> some View {
+      self
+    }
+  }
+#endif
