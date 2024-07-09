@@ -15,28 +15,40 @@ public struct Infinite4Pager<Content: View>: View {
   @State private var size: CGSize = .zero
   @Environment(\.scenePhase) var scenePhase
 
+  /// 横向总视图数量，nil 为无限
   let totalHorizontalPage: Int?
+  /// 纵向总视图数量，nil 为无限
   let totalVerticalPage: Int?
+  /// 横向翻页位移阈值，松开手指后，预测距离超过容器宽度的百分比，超过即翻页
   let horizontalThresholdRatio: CGFloat
+  /// 纵向翻页位移阈值，松开手指后，预测距离超过容器高度的百分比，超过即翻页
   let verticalThresholdRatio: CGFloat
+  /// 一个闭包，用于生成对应单元格的页面，参数为当前单元格的横竖位置
   let getPage: (Int, Int) -> Content
+  /// 启用后，将生成更多的站位视图（ 为开启生成 4 个，开启后创建 8 个）。可以改善因滑动速度过快或弹性动画回弹效果过大产生的单元格空隙
   let bounce: Bool
+  /// 是否启用 clipped，默认为启用
+  let enableClipped: Bool
+  /// 翻页动画
+  let animation: Animation
+  /// 是否启用视图可见感知
+  let enablePageVisibility: Bool
 
-  private let animation = Animation.spring(
-    response: 0.44,
-    dampingFraction: 0.76,
-    blendDuration: 0
-  )
-
-  public init(initialHorizontalPage: Int = 0,
-       initialVerticalPage: Int = 0,
-       totalHorizontalPage: Int? = nil,
-       totalVerticalPage: Int? = nil,
-       horizontalThresholdRatio: CGFloat = 0.33, // 移动距离阈值，百分比
-       verticalThresholdRatio: CGFloat = 0.25,
-       bounce: Bool = true,
-       @ViewBuilder getPage: @escaping (Int, Int) -> Content)
-  {
+  public init(
+    /// 初始单元格横向位置
+    initialHorizontalPage: Int = 0,
+    /// 初始单元格纵向位置
+    initialVerticalPage: Int = 0,
+    totalHorizontalPage: Int? = nil,
+    totalVerticalPage: Int? = nil,
+    horizontalThresholdRatio: CGFloat = 0.33,
+    verticalThresholdRatio: CGFloat = 0.25,
+animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
+    enableClipped: Bool = true,
+    enablePageVisibility: Bool = false,
+    bounce: Bool = true,
+    @ViewBuilder getPage: @escaping (Int, Int) -> Content
+  ) {
     _currentHorizontalPage = State(initialValue: initialHorizontalPage)
     _currentVerticalPage = State(initialValue: initialVerticalPage)
     self.totalHorizontalPage = totalHorizontalPage
@@ -45,6 +57,9 @@ public struct Infinite4Pager<Content: View>: View {
     self.verticalThresholdRatio = verticalThresholdRatio
     self.getPage = getPage
     self.bounce = bounce
+    self.enableClipped = enableClipped
+    self.animation = animation
+    self.enablePageVisibility = enableClipped
   }
 
   public var body: some View {
@@ -61,10 +76,16 @@ public struct Infinite4Pager<Content: View>: View {
       DragGesture()
         .onChanged { value in
           if dragDirection == .none {
-            dragDirection = abs(value.translation.width) > abs(value.translation.height) ? .horizontal : .vertical
+            let temp = abs(value.translation.width) > abs(value.translation.height) ? PageViewDirection.horizontal : .vertical
+            if let totalHorizontalPage, totalHorizontalPage != 0, temp == .horizontal {
+              dragDirection = .horizontal
+            }
+            if temp == .vertical, totalVerticalPage != 0 {
+              dragDirection == .vertical
+            }
           }
 
-          let newOffset: CGSize
+          var newOffset: CGSize = .zero
           if dragDirection == .horizontal {
             let limitedX = boundedDragOffset(
               value.translation.width,
@@ -73,7 +94,9 @@ public struct Infinite4Pager<Content: View>: View {
               totalPages: totalHorizontalPage
             )
             newOffset = CGSize(width: limitedX, height: 0)
-          } else {
+          }
+
+          if dragDirection == .vertical {
             let limitedY = boundedDragOffset(
               value.translation.height,
               pageSize: size.height,
@@ -103,7 +126,7 @@ public struct Infinite4Pager<Content: View>: View {
               height: dragDirection == .vertical ? CGFloat(-direction) * pageSize : 0
             )
 
-            withAnimation(.smooth(duration: 0.3)) {
+            withAnimation(animation) {
               offset = newOffset
             } completion: {
               if dragDirection == .horizontal {
@@ -114,7 +137,9 @@ public struct Infinite4Pager<Content: View>: View {
                   // 无限滚动的情况
                   currentHorizontalPage += direction == 1 ? 1 : -1
                 }
-              } else {
+              }
+              
+              if dragDirection == .vertical {
                 if let total = totalVerticalPage {
                   // 有限页面的情况
                   currentVerticalPage = (currentVerticalPage + (direction == 1 ? 1 : -1) + total) % total
@@ -145,6 +170,8 @@ public struct Infinite4Pager<Content: View>: View {
         offset = .zero
       }
     }
+    .environment(\.mainPageOffset, mainPageOffset())
+    .clipped(disable: !enableClipped)
     .background(
       GeometryReader { proxy in
         let size = proxy.size
@@ -152,6 +179,15 @@ public struct Infinite4Pager<Content: View>: View {
           .task(id: size) { self.size = size }
       }
     )
+  }
+
+  // 根据 container size 和 offset，计算主视图的 visibility 矢量可见比例
+  // 0 = 完全可见，（1,0) 向右完全移出，(-1,0) 向左完全移出，(0,1) 向下完全移出，(0,-1) 向上完全移出
+  private func mainPageOffset() -> CGSize {
+    guard enablePageVisibility else { return .zero }
+    let horizontal = offset.width / size.width
+    let vertical = offset.height / size.height
+    return .init(width: horizontal, height: vertical)
   }
 
   // 判断是否为边界视图
