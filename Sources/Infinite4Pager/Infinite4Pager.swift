@@ -175,7 +175,13 @@ public struct Infinite4Pager<Content: View>: View {
     // 退到后台时，调整位置。避免出现滚动到一半的场景
     .onChange(of: scenePhase) {
       switch scenePhase {
-      case .active, .background:
+      case .active:
+        if offset != .zero {
+          withAnimation(.bouncy(duration: 0.2)) {
+            offset = .zero
+          }
+        }
+      case .background:
         offset = .zero
       default:
         break
