@@ -73,10 +73,10 @@ public struct Infinite4Pager<Content: View>: View {
         .onChanged { value in
           if dragDirection == .none {
             let temp = abs(value.translation.width) > abs(value.translation.height) ? PageViewDirection.horizontal : .vertical
-            if let totalHorizontalPage, totalHorizontalPage != 0, temp == .horizontal {
+            if totalHorizontalPage != 0, temp == .horizontal {
               dragDirection = .horizontal
             }
-            if temp == .vertical, totalVerticalPage != 0 {
+            if totalVerticalPage != 0, temp == .vertical {
               dragDirection = .vertical
             }
           }
