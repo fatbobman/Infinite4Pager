@@ -26,8 +26,6 @@ public struct Infinite4Pager<Content: View>: View {
   /// 一个闭包，用于生成对应单元格的页面，参数为当前单元格的横竖位置
   let getPage: (Int, Int) -> Content
   /// 启用后，将生成更多的站位视图（ 为开启生成 4 个，开启后创建 8 个）。可以改善因滑动速度过快或弹性动画回弹效果过大产生的单元格空隙
-  let bounce: Bool
-  /// 是否启用 clipped，默认为启用
   let enableClipped: Bool
   /// 翻页动画
   let animation: Animation
@@ -43,10 +41,9 @@ public struct Infinite4Pager<Content: View>: View {
     totalVerticalPage: Int? = nil,
     horizontalThresholdRatio: CGFloat = 0.33,
     verticalThresholdRatio: CGFloat = 0.25,
-animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
+    animation: Animation = .easeOut(duration: 0.22),
     enableClipped: Bool = true,
-    enablePageVisibility: Bool = false,
-    bounce: Bool = true,
+    enablePageVisibility _: Bool = false,
     @ViewBuilder getPage: @escaping (Int, Int) -> Content
   ) {
     _currentHorizontalPage = State(initialValue: initialHorizontalPage)
@@ -56,10 +53,9 @@ animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
     self.horizontalThresholdRatio = horizontalThresholdRatio
     self.verticalThresholdRatio = verticalThresholdRatio
     self.getPage = getPage
-    self.bounce = bounce
     self.enableClipped = enableClipped
     self.animation = animation
-    self.enablePageVisibility = enableClipped
+    enablePageVisibility = enableClipped
   }
 
   public var body: some View {
@@ -68,7 +64,7 @@ animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
       currentVerticalPage: currentVerticalPage,
       totalHorizontalPage: totalHorizontalPage,
       totalVerticalPage: totalVerticalPage,
-      bounce: bounce,
+      size: size,
       getPage: getPage
     )
     .offset(x: offset.width, y: offset.height)
@@ -81,7 +77,7 @@ animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
               dragDirection = .horizontal
             }
             if temp == .vertical, totalVerticalPage != 0 {
-              dragDirection == .vertical
+              dragDirection = .vertical
             }
           }
 
@@ -138,7 +134,7 @@ animation: Animation = .smooth(duration: 0.3,extraBounce: 0),
                   currentHorizontalPage += direction == 1 ? 1 : -1
                 }
               }
-              
+
               if dragDirection == .vertical {
                 if let total = totalVerticalPage {
                   // 有限页面的情况
@@ -251,7 +247,7 @@ struct CurrentPageView<Content: View>: View {
   let currentVerticalPage: Int
   let totalHorizontalPage: Int?
   let totalVerticalPage: Int?
-  let bounce: Bool
+  let size: CGSize
   let getPage: (Int, Int) -> Content
 
   init(
@@ -259,68 +255,51 @@ struct CurrentPageView<Content: View>: View {
     currentVerticalPage: Int,
     totalHorizontalPage: Int?,
     totalVerticalPage: Int?,
-    bounce: Bool = false,
+    size: CGSize,
     getPage: @escaping (Int, Int) -> Content
   ) {
     self.currentHorizontalPage = currentHorizontalPage
     self.currentVerticalPage = currentVerticalPage
     self.totalHorizontalPage = totalHorizontalPage
     self.totalVerticalPage = totalVerticalPage
-    self.bounce = bounce
+    self.size = size
     self.getPage = getPage
   }
 
   var body: some View {
     Color.clear
       .overlay(alignment: .center) {
-        getPage(currentHorizontalPage, currentVerticalPage)
-      }
-      .overlay(alignment: .top) {
-        getAdjacentPage(direction: .vertical, offset: -1)
-          .alignmentGuide(.top) { $0[.bottom] }
-      }
-      .overlay(alignment: .top) {
-        VStack {
-          if bounce {
-            getAdjacentPage(direction: .vertical, offset: -2)
+        Grid(alignment: .center, horizontalSpacing: 0, verticalSpacing: 0) {
+          GridRow {
+            Color.clear
+              .frame(size: size)
+            // top
+            getAdjacentPage(direction: .vertical, offset: -1)
+              .frame(size: size)
+            Color.clear
+              .frame(size: size)
           }
-        }.alignmentGuide(.top) { $0.height * 2 }
-      }
-      .overlay(alignment: .bottom) {
-        getAdjacentPage(direction: .vertical, offset: 1)
-          .alignmentGuide(.bottom) { $0[.top] }
-      }
-      .overlay(alignment: .bottom) {
-        VStack {
-          if bounce {
-            getAdjacentPage(direction: .vertical, offset: 2)
+          GridRow {
+            // leading
+            getAdjacentPage(direction: .horizontal, offset: -1)
+              .frame(size: size)
+            // current
+            getPage(currentHorizontalPage, currentVerticalPage)
+              .frame(size: size)
+            // trailing
+            getAdjacentPage(direction: .horizontal, offset: 1)
+              .frame(size: size)
           }
-        }
-        .alignmentGuide(.bottom) { $0.height * -1 }
-      }
-      .overlay(alignment: .leading) {
-        getAdjacentPage(direction: .horizontal, offset: -1)
-          .alignmentGuide(.leading) { $0[.trailing] }
-      }
-      .overlay(alignment: .leading) {
-        VStack {
-          if bounce {
-            getAdjacentPage(direction: .horizontal, offset: -2)
+          GridRow {
+            Color.clear
+              .frame(size: size)
+            // bottom
+            getAdjacentPage(direction: .vertical, offset: 1)
+              .frame(size: size)
+            Color.clear
+              .frame(size: size)
           }
         }
-        .alignmentGuide(.leading) { $0.width * 2 }
-      }
-      .overlay(alignment: .trailing) {
-        getAdjacentPage(direction: .horizontal, offset: 1)
-          .alignmentGuide(.trailing) { $0[.leading] }
-      }
-      .overlay(alignment: .trailing) {
-        VStack {
-          if bounce {
-            getAdjacentPage(direction: .horizontal, offset: 2)
-          }
-        }
-        .alignmentGuide(.trailing) { $0.width * -1 }
       }
       .contentShape(Rectangle())
   }
@@ -351,6 +330,8 @@ struct CurrentPageView<Content: View>: View {
               ? getPage(nextPage, currentVerticalPage)
               : getPage(currentHorizontalPage, nextPage)
           )
+      } else {
+        Color.clear
       }
     }
   }
