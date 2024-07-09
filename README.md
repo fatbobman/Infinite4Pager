@@ -23,7 +23,7 @@ Infinite4Pager is a flexible and powerful SwiftUI component that provides infini
 
 You can add Infinite4Pager to your project using Swift Package Manager. In Xcode, go to File > Swift Packages > Add Package Dependency and enter the repository URL:
 
-https://github.com/yourusername/Infinite4Pager.git
+https://github.com/fatbobman/Infinite4Pager.git
 
 ## Usage
 
