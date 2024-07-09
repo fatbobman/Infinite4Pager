@@ -33,21 +33,55 @@ Here's a basic example of how to use Infinite4Pager:
 import SwiftUI
 import Infinite4Pager
 
-struct ContentView: View {
-    var body: some View {
-        Infinite4Pager(
-            initialHorizontalPage: 0,
-            initialVerticalPage: 0,
-            totalHorizontalPage: 5,
-            totalVerticalPage: 5,
-            getPage: { h, v in
-                Text("Page (\(h), \(v))")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.blue.opacity(0.3))
-            }
+struct TestView: View {
+  var body: some View {
+    Infinite4Pager(
+      initialHorizontalPage: 2,
+      initialVerticalPage: 2,
+      totalHorizontalPage: 5,
+      totalVerticalPage: 5,
+      enableClipped: false,
+      enablePageVisibility: true,
+      getPage: { h, v in
+        PageView(h: h, v: v)
+      }
+    )
+    .ignoresSafeArea()
+  }
+}
+
+struct PageView: View {
+  let h: Int
+  let v: Int
+  let images = ["img1", "img2", "img3", "img4", "img5"]
+  @State var percent: Double = 0
+  var body: some View {
+    VStack {
+      let index = abs((h + v) % (images.count - 1))
+      Color.clear
+        .overlay(
+          Image(images[index])
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .overlay(
+              Text("\(h),\(v): visibility \(percent)")
+                .font(.largeTitle)
+                .foregroundStyle(.white)
+                .padding()
+                .background(
+                  RoundedRectangle(cornerRadius: 15)
+                    .foregroundColor(.black)
+                )
+            )
         )
-        .ignoresSafeArea()
+        .onPageVisible { percent in
+          if let percent {
+            self.percent = percent
+          }
+        }
+        .clipped()
     }
+  }
 }
 ```
 
