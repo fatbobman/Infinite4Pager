@@ -29,7 +29,7 @@ struct MainPageOffsetInfo: Equatable {
 }
 
 struct PageOffsetKey: EnvironmentKey {
-  static let defaultValue: MainPageOffsetInfo? = nil
+  static let defaultValue: MainPageOffsetInfo? = .init(mainPagePercent: 0, direction: .none)
 }
 
 struct PageTypeKey: EnvironmentKey {
@@ -53,10 +53,12 @@ struct OnPageVisibleModifier: ViewModifier {
   @Environment(\.pageType) var pageType
   let perform: (Double?) -> Void
   func body(content: Content) -> some View {
-    if let info {
-      perform(valueTransform(info))
-    }
-    return content
+    content
+      .task(id: info) {
+        if let info {
+          perform(valueTransform(info))
+        }
+      }
   }
 
   // 根据 pageType 对可见度进行转换
