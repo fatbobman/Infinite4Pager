@@ -43,7 +43,7 @@ public struct Infinite4Pager<Content: View>: View {
     verticalThresholdRatio: CGFloat = 0.25,
     animation: Animation = .easeOut(duration: 0.22),
     enableClipped: Bool = true,
-    enablePageVisibility _: Bool = false,
+    enablePageVisibility: Bool = false,
     @ViewBuilder getPage: @escaping (Int, Int) -> Content
   ) {
     _currentHorizontalPage = State(initialValue: initialHorizontalPage)
@@ -55,7 +55,7 @@ public struct Infinite4Pager<Content: View>: View {
     self.getPage = getPage
     self.enableClipped = enableClipped
     self.animation = animation
-    enablePageVisibility = enableClipped
+    self.enablePageVisibility = enablePageVisibility
   }
 
   public var body: some View {
@@ -166,7 +166,11 @@ public struct Infinite4Pager<Content: View>: View {
         offset = .zero
       }
     }
-    .environment(\.mainPageOffset, mainPageOffset())
+    .transformEnvironment(\.mainPageOffsetInfo) { value in
+      if enablePageVisibility {
+        value = MainPageOffsetInfo(mainPagePercent: mainPagePercent(), direction: dragDirection)
+      }
+    }
     .clipped(disable: !enableClipped)
     .background(
       GeometryReader { proxy in
@@ -177,13 +181,18 @@ public struct Infinite4Pager<Content: View>: View {
     )
   }
 
-  // 根据 container size 和 offset，计算主视图的 visibility 矢量可见比例
-  // 0 = 完全可见，（1,0) 向右完全移出，(-1,0) 向左完全移出，(0,1) 向下完全移出，(0,-1) 向上完全移出
-  private func mainPageOffset() -> CGSize {
-    guard enablePageVisibility else { return .zero }
-    let horizontal = offset.width / size.width
-    let vertical = offset.height / size.height
-    return .init(width: horizontal, height: vertical)
+  // 根据 container size 和 offset，计算主视图的可见参考值
+  // 0 = 完全可见，横向时, -1 左侧完全移出，+1 右侧完全移出
+  // 纵向时， -1 向上完全移出，+1 向下完全移出
+  private func mainPagePercent() -> Double {
+    switch dragDirection {
+    case .horizontal:
+      offset.width / size.width
+    case .vertical:
+      offset.height / size.height
+    case .none:
+      0
+    }
   }
 
   // 判断是否为边界视图
@@ -250,6 +259,8 @@ struct CurrentPageView<Content: View>: View {
   let size: CGSize
   let getPage: (Int, Int) -> Content
 
+  @Environment(\.mainPageOffsetInfo) var info
+
   init(
     currentHorizontalPage: Int,
     currentVerticalPage: Int,
@@ -276,6 +287,7 @@ struct CurrentPageView<Content: View>: View {
             // top
             getAdjacentPage(direction: .vertical, offset: -1)
               .frame(size: size)
+              .environment(\.pageType, .top)
             Color.clear
               .frame(size: size)
           }
@@ -283,12 +295,15 @@ struct CurrentPageView<Content: View>: View {
             // leading
             getAdjacentPage(direction: .horizontal, offset: -1)
               .frame(size: size)
+              .environment(\.pageType, .leading)
             // current
             getPage(currentHorizontalPage, currentVerticalPage)
               .frame(size: size)
+              .environment(\.pageType, .current)
             // trailing
             getAdjacentPage(direction: .horizontal, offset: 1)
               .frame(size: size)
+              .environment(\.pageType, .trailing)
           }
           GridRow {
             Color.clear
@@ -296,6 +311,7 @@ struct CurrentPageView<Content: View>: View {
             // bottom
             getAdjacentPage(direction: .vertical, offset: 1)
               .frame(size: size)
+              .environment(\.pageType, .bottom)
             Color.clear
               .frame(size: size)
           }
@@ -343,4 +359,8 @@ struct CurrentPageView<Content: View>: View {
     }
     return current + direction
   }
+}
+
+enum PageType {
+  case current, leading, trailing, top, bottom
 }
