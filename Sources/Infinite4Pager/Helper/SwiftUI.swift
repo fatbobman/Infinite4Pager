@@ -105,6 +105,7 @@ extension View {
   }
 
   extension View {
+    @MainActor
     func onDragEnd(perform: @escaping @MainActor (CGPoint) -> Void) -> some View {
       modifier(DragGestureModifier(onEnded: perform))
     }
