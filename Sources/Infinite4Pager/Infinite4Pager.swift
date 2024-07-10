@@ -15,7 +15,6 @@ public struct Infinite4Pager<Content: View>: View {
   @State private var size: CGSize = .zero
   @Environment(\.scenePhase) var scenePhase
   @State private var cancelByDrag = false
-  @State private var pageID: PageUpdateID
 
   /// 横向总视图数量，nil 为无限
   let totalHorizontalPage: Int?
@@ -50,7 +49,6 @@ public struct Infinite4Pager<Content: View>: View {
   ) {
     _currentHorizontalPage = State(initialValue: initialHorizontalPage)
     _currentVerticalPage = State(initialValue: initialVerticalPage)
-    _pageID = State(initialValue: .init(currentHorizontal: initialHorizontalPage, currentVertical: initialVerticalPage))
     self.totalHorizontalPage = totalHorizontalPage
     self.totalVerticalPage = totalVerticalPage
     self.horizontalThresholdRatio = horizontalThresholdRatio
@@ -71,7 +69,6 @@ public struct Infinite4Pager<Content: View>: View {
       getPage: getPage
     )
     .offset(x: offset.width, y: offset.height)
-    .id(pageID)
     .onDragEnd { _ in
       // 如果因为系统手势对 drag 手势进行了打断（ 没有调用 onEeded 闭包 ），在此进行复位
       if !cancelByDrag {
@@ -147,7 +144,6 @@ public struct Infinite4Pager<Content: View>: View {
                   // 无限滚动的情况
                   currentHorizontalPage += direction == 1 ? 1 : -1
                 }
-                generateNewID()
               }
 
               if dragDirection == .vertical {
@@ -158,7 +154,6 @@ public struct Infinite4Pager<Content: View>: View {
                   // 无限滚动的情况
                   currentVerticalPage += direction == 1 ? 1 : -1
                 }
-                generateNewID()
               }
               dragDirection = .none
             }
@@ -171,7 +166,10 @@ public struct Infinite4Pager<Content: View>: View {
           cancelByDrag = true
         }
     )
-    .onChange(of: pageID) {
+    .onChange(of: currentVerticalPage) {
+      offset = .zero
+    }
+    .onChange(of: currentHorizontalPage){
       offset = .zero
     }
     // 退到后台时，调整位置。避免出现滚动到一半的场景
@@ -267,10 +265,6 @@ public struct Infinite4Pager<Content: View>: View {
       }
     }
     return offset
-  }
-
-  private func generateNewID() {
-    pageID = .init(currentHorizontal: currentHorizontalPage, currentVertical: currentVerticalPage)
   }
 }
 
