@@ -2,6 +2,8 @@
 
 Infinite4Pager is a flexible and powerful SwiftUI component that provides infinite scrolling capabilities in four directions: up, down, left, and right. It's perfect for creating image galleries, card decks, or any other content that requires seamless navigation in multiple directions.
 
+https://github.com/fatbobman/Infinite4Pager/assets/55673881/e98bd549-e639-46e7-9adf-b9e82b75b858
+
 ## Features
 
 - Infinite scrolling in four directions
