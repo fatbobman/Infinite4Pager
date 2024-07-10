@@ -56,7 +56,9 @@ struct PageView: View {
   let h: Int
   let v: Int
   let images = ["img1", "img2", "img3", "img4", "img5"]
+  @Environment(\.pagerCurrentPage) var mainPage
   @State var percent: Double = 0
+  @State var isCurrent = false
   var body: some View {
     VStack {
       let index = abs((h + v) % (images.count - 1))
@@ -66,19 +68,30 @@ struct PageView: View {
             .resizable()
             .aspectRatio(contentMode: .fill)
             .overlay(
-              Text("\(h),\(v): visibility \(percent)")
-                .font(.largeTitle)
-                .foregroundStyle(.white)
-                .padding()
-                .background(
-                  RoundedRectangle(cornerRadius: 15)
-                    .foregroundColor(.black)
-                )
+              VStack {
+                Text("\(h),\(v)")
+                Text("visibility \(percent)")
+                Text("isCurrent:\(isCurrent)")
+              }
+              .font(.largeTitle)
+              .foregroundStyle(.white)
+              .padding()
+              .background(
+                RoundedRectangle(cornerRadius: 15)
+                  .foregroundColor(.black)
+              )
             )
         )
         .onPageVisible { percent in
           if let percent {
             self.percent = percent
+          }
+        }
+        .task(id: mainPage) {
+          if let mainPage {
+            if mainPage.horizontal == h, mainPage.vertical == v {
+              isCurrent = true
+            }
           }
         }
         .clipped()
@@ -100,7 +113,7 @@ Infinite4Pager offers several customization options:
 - `animation` : page scroll animation
 - `enablePageVisibility` : Whether to enable view visibility awareness. If false, onPageVisible will not respond.
 
-## onPageVisible
+## Page Visibility and Data Management
 
 A view modifier similar to `onScrollVisibilityChange` that provides the view with the current proportion of the visible area.
 
@@ -112,6 +125,19 @@ A view modifier similar to `onScrollVisibilityChange` that provides the view wit
     }
   }
 ```
+
+The environment value pagerCurrentPage provides information about the current view within the container.
+
+```swift
+.task(id: mainPage) {
+  if let mainPage {
+    if mainPage.horizontal == h, mainPage.vertical == v {
+      // load data , enable animation
+    }
+  }
+}
+```
+
 
 ## Contributing
 

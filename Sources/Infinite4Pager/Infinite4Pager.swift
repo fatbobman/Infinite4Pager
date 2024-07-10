@@ -169,7 +169,7 @@ public struct Infinite4Pager<Content: View>: View {
     .onChange(of: currentVerticalPage) {
       offset = .zero
     }
-    .onChange(of: currentHorizontalPage){
+    .onChange(of: currentHorizontalPage) {
       offset = .zero
     }
     // 退到后台时，调整位置。避免出现滚动到一半的场景
@@ -187,6 +187,7 @@ public struct Infinite4Pager<Content: View>: View {
         break
       }
     }
+    .environment(\.pagerCurrentPage, CurrentPage(horizontal: currentHorizontalPage, vertical: currentVerticalPage))
     .transformEnvironment(\.mainPageOffsetInfo) { value in
       if enablePageVisibility {
         value = MainPageOffsetInfo(mainPagePercent: mainPagePercent(), direction: dragDirection)
@@ -339,6 +340,7 @@ struct CurrentPageView<Content: View>: View {
         }
       }
       .contentShape(Rectangle())
+      .id("\(currentHorizontalPage),\(currentVerticalPage)")
   }
 
   private func getAdjacentPage(direction: PageViewDirection, offset: Int) -> some View {
@@ -384,13 +386,4 @@ struct CurrentPageView<Content: View>: View {
 
 enum PageType {
   case current, leading, trailing, top, bottom
-}
-
-struct PageUpdateID: Identifiable, Hashable {
-  var id: String {
-    "\(currentVertical):\(currentVertical)"
-  }
-
-  var currentHorizontal: Int
-  var currentVertical: Int
 }

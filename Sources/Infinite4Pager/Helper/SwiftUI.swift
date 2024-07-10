@@ -23,6 +23,19 @@ extension View {
   }
 }
 
+public struct CurrentPage: Equatable {
+  public let horizontal: Int
+  public let vertical: Int
+  public init(horizontal: Int, vertical: Int) {
+    self.horizontal = horizontal
+    self.vertical = vertical
+  }
+}
+
+public struct CurrentPageKey: EnvironmentKey {
+  public static let defaultValue: CurrentPage? = nil
+}
+
 struct MainPageOffsetInfo: Equatable {
   let mainPagePercent: Double
   let direction: PageViewDirection
@@ -45,6 +58,13 @@ extension EnvironmentValues {
   var pageType: PageType {
     get { self[PageTypeKey.self] }
     set { self[PageTypeKey.self] = newValue }
+  }
+}
+
+extension EnvironmentValues {
+  public var pagerCurrentPage: CurrentPage? {
+    get { self[CurrentPageKey.self] }
+    set { self[CurrentPageKey.self] = newValue }
   }
 }
 
