@@ -16,6 +16,7 @@ public struct Infinite4Pager<Content: View>: View {
   @GestureState private var isDragging = false
   @Environment(\.scenePhase) var scenePhase
   @State private var cancelByDrag = false
+  private let edgeBouncyAnimation: Animation = .smooth
 
   /// 横向总视图数量，nil 为无限
   let totalHorizontalPage: Int?
@@ -69,6 +70,8 @@ public struct Infinite4Pager<Content: View>: View {
       size: size,
       getPage: getPage
     )
+    .disabled(isDragging)
+    .geometryGroup()
     .offset(x: offset.width, y: offset.height)
     .simultaneousGesture(
       DragGesture()
@@ -154,7 +157,7 @@ public struct Infinite4Pager<Content: View>: View {
               dragDirection = .none
             }
           } else {
-            withAnimation(.bouncy) {
+            withAnimation(edgeBouncyAnimation) {
               offset = .zero
               dragDirection = .none
             }
@@ -166,7 +169,7 @@ public struct Infinite4Pager<Content: View>: View {
       // 处理系统对拖动手势的打断
       if !isDragging {
         if !cancelByDrag {
-          withAnimation(.bouncy) {
+          withAnimation(edgeBouncyAnimation) {
             offset = .zero
           }
         } else {
@@ -180,6 +183,7 @@ public struct Infinite4Pager<Content: View>: View {
     .onChange(of: currentHorizontalPage) {
       offset = .zero
     }
+    .environment(\.infinite4PagerIsDragging, isDragging)
     .environment(\.pagerCurrentPage, CurrentPage(horizontal: currentHorizontalPage, vertical: currentVerticalPage))
     .transformEnvironment(\.mainPageOffsetInfo) { value in
       if enablePageVisibility {
@@ -242,20 +246,18 @@ public struct Infinite4Pager<Content: View>: View {
     currentPage: Int,
     totalPages: Int?
   ) -> CGFloat {
-    let normalThreshold = pageSize / 1.8
-    let maxThreshold = pageSize / 1.5
+    let maxThreshold = pageSize / 2
 
     if let total = totalPages {
       if (currentPage == 0 && offset > 0) || (currentPage == total - 1 && offset < 0) {
-        if abs(offset) <= normalThreshold {
-          return offset
-        } else {
-          let overThreshold = abs(offset) - normalThreshold
-          let progress = overThreshold / (maxThreshold - normalThreshold)
-          let dampeningFactor = 1 - pow(progress, 2)
-          let dampenedOverThreshold = overThreshold * dampeningFactor
-          return (offset > 0 ? 1 : -1) * (normalThreshold + dampenedOverThreshold)
-        }
+        let absOffset = abs(offset)
+        let progress = min(absOffset / maxThreshold, 1.0)
+
+        // 使用更线性的阻尼函数
+        let dampeningFactor = 1 - progress * 0.5
+
+        let dampendOffset = absOffset * dampeningFactor
+        return offset > 0 ? dampendOffset : -dampendOffset
       }
     }
     return offset
