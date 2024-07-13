@@ -13,6 +13,7 @@ public struct Infinite4Pager<Content: View>: View {
   @State private var offset: CGSize = .zero
   @State private var dragDirection: PageViewDirection = .none
   @State private var size: CGSize = .zero
+  @GestureState private var isDragging = false
   @Environment(\.scenePhase) var scenePhase
   @State private var cancelByDrag = false
 
@@ -69,18 +70,13 @@ public struct Infinite4Pager<Content: View>: View {
       getPage: getPage
     )
     .offset(x: offset.width, y: offset.height)
-    .onDragEnd { _ in
-      // 如果因为系统手势对 drag 手势进行了打断（ 没有调用 onEeded 闭包 ），在此进行复位
-      if !cancelByDrag {
-        withAnimation(.bouncy) {
-          offset = .zero
-        }
-      } else {
-        cancelByDrag = false
-      }
-    }
     .simultaneousGesture(
       DragGesture()
+        .updating($isDragging) { _, isDragging, _ in
+          if !isDragging {
+            isDragging = true
+          }
+        }
         .onChanged { value in
           if dragDirection == .none {
             let temp = abs(value.translation.width) > abs(value.translation.height) ? PageViewDirection.horizontal : .vertical
@@ -166,26 +162,23 @@ public struct Infinite4Pager<Content: View>: View {
           cancelByDrag = true
         }
     )
+    .onChange(of: isDragging) {
+      // 处理系统对拖动手势的打断
+      if !isDragging {
+        if !cancelByDrag {
+          withAnimation(.bouncy) {
+            offset = .zero
+          }
+        } else {
+          cancelByDrag = false
+        }
+      }
+    }
     .onChange(of: currentVerticalPage) {
       offset = .zero
     }
     .onChange(of: currentHorizontalPage) {
       offset = .zero
-    }
-    // 退到后台时，调整位置。避免出现滚动到一半的场景
-    .onChange(of: scenePhase) {
-      switch scenePhase {
-      case .active:
-        if offset != .zero {
-          withAnimation(.bouncy(duration: 0.2)) {
-            offset = .zero
-          }
-        }
-      case .background:
-        offset = .zero
-      default:
-        break
-      }
     }
     .environment(\.pagerCurrentPage, CurrentPage(horizontal: currentHorizontalPage, vertical: currentVerticalPage))
     .transformEnvironment(\.mainPageOffsetInfo) { value in
